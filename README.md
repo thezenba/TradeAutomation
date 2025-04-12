@@ -4,13 +4,15 @@
 
 # 1. Instale as seguintes bibliotecas:
 
-    Digite no terminal (abra o terminal com ctrl+J):
+    Abra o terminal (ctrl+J) e digite:
 
     pip install pandas python-binance python-dotenv
 
-# 2. Insira suas chaves da Binance no documento em /src/modules/BinanceTraderBot.py
+# 2. Configure as chaves da API Binance
 
-    🟡 IMPORTANTE: Elas devem estar entre aspas duplas (Exemplo a baixo)
+    Crie um arquivo `.env` na raiz do projeto (mesmo diretório que este README.md).
+
+    Adicione suas chaves de API e Secret Key da Binance no arquivo `.env`, da seguinte forma:
     load_dotenv()
     api_key = "Chave aqui"
     secret_key = "Chave aqui"

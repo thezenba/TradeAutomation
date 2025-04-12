@@ -1,48 +1,56 @@
-from flask import Blueprint, render_template, request, jsonify
-import json
+from flask import render_template, jsonify
+from .app import app
+import subprocess
+import threading
+import src.main
+import src.backtests
+import os
+import signal
 
-routes = Blueprint("routes", __name__)
+BOT_RUNNING = False
+bot_process = None
 
-CONFIG_PATH = "src/app/config.json"
 
-
-@routes.route("/")
+@app.route('/')
 def dashboard():
-    """Renderiza o template do painel, garantindo que ele receba a configuração corretamente"""
-    with open(CONFIG_PATH, "r") as f:
-        config = json.load(f)
-    return render_template("dashboard.html", config=config)
+    return render_template('dashboard.html')
 
 
-@routes.route("/get-config", methods=["GET"])
-def get_config():
-    """Retorna o config.json completo para o front-end"""
+@app.route('/start_bot', methods=['POST'])
+def start_bot():
+    global BOT_RUNNING
+    global bot_process
+    if BOT_RUNNING:
+        return jsonify({'error': 'Bot is already running'}), 400
+    BOT_RUNNING = True
+    bot_thread = threading.Thread(target=run_bot)
+    bot_thread.daemon = True  # Allow the main program to exit even if the thread is running
+    bot_thread.start()
+    return jsonify({'message': 'Bot started'})
+
+
+def run_bot():
+    global bot_process
     try:
-        with open(CONFIG_PATH, "r") as f:
-            config = json.load(f)
-        return jsonify(config)
-    except Exception as e:
-        return jsonify({"error": f"Erro ao carregar configuração: {str(e)}"}), 500
+        bot_process = subprocess.Popen(["python", "src/main.py"])
+        bot_process.wait()
+    finally:
+        global BOT_RUNNING
+        BOT_RUNNING = False
 
 
-@routes.route("/update-config", methods=["POST"])
-def update_config():
-    try:
-        # Carregar o config.json existente
-        with open(CONFIG_PATH, "r") as f:
-            existing_config = json.load(f)
+@app.route('/stop_bot', methods=['POST'])
+def stop_bot():
+    global BOT_RUNNING
+    global bot_process
+    if not BOT_RUNNING or bot_process is None:
+        return jsonify({'error': 'Bot is not running'}), 400
+    os.kill(bot_process.pid, signal.SIGTERM)
+    BOT_RUNNING = False
+    return jsonify({'message': 'Bot stopped'})
 
-        # Obter os novos valores do formulário
-        new_config = request.json
 
-        # Atualizar apenas os campos enviados, mantendo os demais inalterados
-        existing_config.update(new_config)
-
-        # Salvar o novo arquivo config.json
-        with open(CONFIG_PATH, "w") as f:
-            json.dump(existing_config, f, indent=4)
-
-        return jsonify({"message": "Configuração atualizada com sucesso!"})
-
-    except Exception as e:
-        return jsonify({"error": f"Erro ao atualizar configuração: {str(e)}"}), 500
+@app.route('/start_backtest', methods=['POST'])
+def start_backtest():
+    subprocess.Popen(["python", "src/backtests.py"])
+    return jsonify({'message': 'Backtest started'})

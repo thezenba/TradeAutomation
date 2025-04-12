@@ -1,5 +1,6 @@
 from binance.client import Client
 from binance.exceptions import BinanceAPIException
+from dotenv import load_dotenv
 import time
 
 
@@ -19,6 +20,18 @@ class BinanceClient(Client):
         verbose=False,
         sync_interval=60000,  # Intervalo de ressincronização em ms
     ):
+
+        load_dotenv()
+        import os
+
+        api_key = os.getenv("BINANCE_API_KEY")
+        api_secret = os.getenv("BINANCE_SECRET_KEY")
+
+        if not api_key or not api_secret:
+            raise Exception(
+                "Binance API keys not found. Please set them in the .env file."
+            )
+
         """
         Inicializa o cliente Binance customizado, integrando a sincronização do timestamp com o atributo `timestamp_offset`.
         """
